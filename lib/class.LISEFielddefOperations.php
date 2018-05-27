@@ -461,7 +461,7 @@ class LISEFielddefOperations
       $obj->SetAlias($alias);
     }
 
-    $isNew = !!$obj->GetId();
+    $isNew = (int)$obj->GetId() === -1;
 
     if (!$isNew) {
       // update
@@ -484,7 +484,7 @@ class LISEFielddefOperations
       $query = 'SELECT max(position) + 1 FROM ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef';
       $position = $db->GetOne($query);
 
-      if ($position == null) {
+      if (!$position) {
         $position = 1;
       }
 
