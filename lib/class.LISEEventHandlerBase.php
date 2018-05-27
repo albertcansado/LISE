@@ -76,15 +76,16 @@ class LISEEventHandlerBase
 
 	public function __construct(LISEFielddefBase &$field)
 	{
-		$this->_field	 	= $field;
+		$this->_field = $field;
 	}
 
 	public function __call($name, $args)
 	{
-		if(method_exists($this->_field, $name))
-			return call_user_func_array(array($this->_field, $name), $args);
+		if (!method_exists($this->_field, $name)) {
+			return false;
+		}
 
-		return FALSE;
+		return call_user_func_array([$this->_field, $name], $args);
 	}
 
 	#---------------------
@@ -164,6 +165,17 @@ class LISEEventHandlerBase
 	public function ItemSavePreProcess(&$errors, &$params)
 	{
 		$this->_field->Validate($errors);
+	}
+
+	/**
+	 * Executed in edit_fielddef action. Just after fielddef is save or update into database.
+	 *
+	 * @param $isNew bool True when fielddef is created, false when updated
+	 * @return void
+	 */
+	public function AfterFielddefSave(LISE $mod, $isNew = false)
+	{
+		return false;
 	}
 
 	#---------------------

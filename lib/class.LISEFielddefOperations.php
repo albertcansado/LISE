@@ -451,19 +451,19 @@ class LISEFielddefOperations
   {
     $db = cmsms()->GetDb();
 
-    var_dump($obj);
-    exit;
-
     // generate alias if not supplied
     if ($obj->GetAlias() == '') {
       $alias = lise_utils::generate_alias($obj->GetName(), $obj->GetFriendlyType());
       while (self::Load($mod, 'alias', $alias) !== false) {
         $alias .= '_';
-        $obj->SetAlias($alias);
       }
+
+      $obj->SetAlias($alias);
     }
 
-    if ($obj->GetId() > 0) {
+    $isNew = !!$obj->GetId();
+
+    if (!$isNew) {
       // update
       $query =  'UPDATE ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef SET name = ?, alias = ?, help = ?, type = ?, required = ?, template = ? WHERE fielddef_id = ?';
       $result = $db->Execute($query, [
@@ -524,6 +524,8 @@ class LISEFielddefOperations
         throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB);
       }
     }
+
+    $obj->EventHandler()->AfterFielddefSave($mod, $isNew);
   }
 
   static final public function Delete(LISE &$mod, $fielddef_id)
