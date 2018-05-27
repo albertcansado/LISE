@@ -451,87 +451,78 @@ class LISEFielddefOperations
   {
     $db = cmsms()->GetDb();
 
+    var_dump($obj);
+    exit;
+
     // generate alias if not supplied
-    if ($obj->GetAlias() == '')
-    {
+    if ($obj->GetAlias() == '') {
       $alias = lise_utils::generate_alias($obj->GetName(), $obj->GetFriendlyType());
-      while(self::Load($mod, 'alias', $alias) != false) {$alias .= '_';}
-      $obj->SetAlias($alias);
+      while (self::Load($mod, 'alias', $alias) !== false) {
+        $alias .= '_';
+        $obj->SetAlias($alias);
+      }
     }
 
-    // update
-    if ($obj->GetId() > 0)
-    {
+    if ($obj->GetId() > 0) {
+      // update
+      $query =  'UPDATE ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef SET name = ?, alias = ?, help = ?, type = ?, required = ?, template = ? WHERE fielddef_id = ?';
+      $result = $db->Execute($query, [
+        $obj->GetName(),
+        $obj->GetAlias(),
+        $obj->GetDesc(),
+        $obj->GetType(),
+        $obj->GetRequired(),
+        $obj->GetTemplate(),
+        $obj->GetId()
+      ]);
 
-      $query =  'UPDATE '
-                . cms_db_prefix()
-                . 'module_'
-                . $mod->_GetModuleAlias()
-                . '_fielddef SET name = ?, alias = ?, help = ?, type = ?, required = ?, template=? WHERE fielddef_id = ?';
-
-      $result = $db->Execute(
-                              $query,
-                              array(
-                                      $obj->GetName(),
-                                      $obj->GetAlias(),
-                                      $obj->GetDesc(),
-                                      $obj->GetType(),
-                                      $obj->GetRequired(),
-                                      $obj->GetTemplate(),
-                                      $obj->GetId()
-                                    )
-                            );
-      if(!$result)
-        throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB );
-
-    // insert
-    }
-    else
-    {
-
+      if (!$result) {
+        throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB);
+      }
+    } else {
+      // insert
       $query = 'SELECT max(position) + 1 FROM ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef';
-
       $position = $db->GetOne($query);
 
-      if ($position == null) $position = 1;
+      if ($position == null) {
+        $position = 1;
+      }
 
       $query = 'INSERT INTO ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef (name, alias, help, type, position, required, template) VALUES (?, ?, ?, ?, ?, ?, ?)';
+      $result = $db->Execute($query,[
+        $obj->GetName(),
+        $obj->GetAlias(),
+        $obj->GetDesc(),
+        $obj->GetType(),
+        $position,
+        $obj->GetRequired(),
+        $obj->GetTemplate()
+      ]);
 
-      $result = $db->Execute(
-                              $query,
-                              array(
-                                      $obj->GetName(),
-                                      $obj->GetAlias(),
-                                      $obj->GetDesc(),
-                                      $obj->GetType(),
-                                      $position,
-                                      $obj->GetRequired(),
-                                      $obj->GetTemplate()
-                                    )
-                            );
-
-      if(!$result)
-        throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB );
+      if (!$result) {
+        throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB);
+      }
 
       $obj->SetId($db->Insert_ID());
     }
 
     // Drop all options
     $query = 'DELETE FROM ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef_opts WHERE fielddef_id = ?';
-    $result = $db->Execute($query, array($obj->GetId()));
+    $result = $db->Execute($query, [$obj->GetId()]);
 
-    if(!$result)
-      throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB );
+    if (!$result) {
+      throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB);
+    }
 
     $query = 'INSERT INTO ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef_opts (fielddef_id, name, value) VALUES (?, ?, ?)';
 
     // Insert all options
-    foreach($obj->GetOptionValues() as $key=>$value)
-    {
-      $result = $db->Execute($query, array($obj->GetId(), $key, $value));
+    foreach($obj->GetOptionValues() as $key => $value) {
+      $result = $db->Execute($query, [$obj->GetId(), $key, $value]);
 
-      if(!$result)
-        throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB );
+      if (!$result) {
+        throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB);
+      }
     }
   }
 
