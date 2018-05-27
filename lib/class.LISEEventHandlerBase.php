@@ -58,7 +58,7 @@
 #	- OnItemLoad(LISE &$mod)
 #	- OnItemSave(LISE &$mod)
 #	- OnItemDelete(LISE &$mod)
-#	- ItemSavePreProcess(Array &$errors, Array &$params) 
+#	- ItemSavePreProcess(Array &$errors, Array &$params)
 #	- ItemSavePostProcess(Array &$errors, Array &$params)
 #
 #-------------------------------------------------------------------------
@@ -69,57 +69,58 @@ class LISEEventHandlerBase
 	#---------------------
 
 	private $_field;
-	
+
 	#---------------------
 	# Magic methods
-	#---------------------		
-	
+	#---------------------
+
 	public function __construct(LISEFielddefBase &$field)
 	{
 		$this->_field	 	= $field;
 	}
-	
+
 	public function __call($name, $args)
 	{
 		if(method_exists($this->_field, $name))
 			return call_user_func_array(array($this->_field, $name), $args);
-	
+
 		return FALSE;
 	}
 
 	#---------------------
 	# Overwritable events
-	#---------------------		
+	#---------------------
 
 	/**
 	 * LISE Field Database Save method
 	 *
 	 * @return void
-	 */	
+	 */
 	public function OnItemSave(LISE $mod)
 	{
 		$db = cmsms()->GetDb();
-	
-		$query  = 'DELETE FROM ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fieldval WHERE item_id = ? AND fielddef_id = ?';
-		$result = $db->Execute($query, array($this->GetParentItem()->item_id, $this->GetId()));
-			
-		if (!$result)
-      throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB ); 
-	
-		$query  = 'INSERT INTO ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fieldval (item_id, fielddef_id, value_index, value) VALUES (?,?,?,?)';
+
+		$query = 'DELETE FROM ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fieldval WHERE item_id = ? AND fielddef_id = ?';
+		$result = $db->Execute($query, [$this->GetParentItem()->item_id, $this->GetId()]);
+
+		if (!$result) {
+      		throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB);
+      	}
+
+		$query = 'INSERT INTO ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fieldval (item_id, fielddef_id, value_index, value) VALUES (?,?,?,?)';
 		$index = 0;
-		
-		foreach($this->GetValue() as $one_val) {
-		
+
+		foreach ($this->GetValue() as $one_val) {
 			if(!$one_val)
 				continue;
-		
+
 			$result = $db->Execute($query, array($this->GetParentItem()->item_id, $this->GetId(), $index, $one_val));
 
-			if (!$result)
-        throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB ); 
+			if (!$result) {
+        		throw new \LISE\Exception($db->ErrorNo() . ' - ' . $db->ErrorMsg() . ' - Query: ' . $db->sql, \LISE\Error::DISCRETE_DB);
+        	}
 
-			$index++;						
+			$index++;
 		}
 	}
 
@@ -127,46 +128,46 @@ class LISEEventHandlerBase
 	 * LISE Field Database Load method
 	 *
 	 * @return void
-	 */		
+	 */
 	public function OnItemLoad(LISE &$mod)
 	{
 		$db = cmsms()->GetDb();
-	
+
 		$query = "SELECT value_index, value, data FROM " . cms_db_prefix() . "module_" . $mod->_GetModuleAlias() . "_fieldval WHERE fielddef_id = ? AND item_id = ?";
 		$dbr = $db->Execute($query, array($this->GetId(), $this->GetParentItem()->item_id));
-	
+
 		$input_arr = array();
 		while($dbr && !$dbr->EOF) {
-		
+
 			if(!is_null($dbr->fields['data'])) {
-			
+
 				$this->SetValue(unserialize($dbr->fields['data']));
 				return;
 			}
-		
+
 			$input_arr[$dbr->fields['value_index']] = $dbr->fields['value'];
 			$dbr->MoveNext();
 		}
-		
-		if($dbr) 
-			$dbr->Close();			
-			
-		$this->SetValue($input_arr); // <- Always set array, regardless of contents, check if this can fail.	
-	}	
+
+		if($dbr)
+			$dbr->Close();
+
+		$this->SetValue($input_arr); // <- Always set array, regardless of contents, check if this can fail.
+	}
 
 	/**
 	 * Executed in edit_item action. Just before database save process is about to take place.
 	 *
 	 * @return void
-	 */	
-	public function ItemSavePreProcess(&$errors, &$params) 
+	 */
+	public function ItemSavePreProcess(&$errors, &$params)
 	{
 		$this->_field->Validate($errors);
-	}	
+	}
 
 	#---------------------
 	# Utility methods
-	#---------------------	
+	#---------------------
 
 	protected function GetField()
 	{
@@ -175,4 +176,4 @@ class LISEEventHandlerBase
 
 } // end of class
 
-?>	
+?>
