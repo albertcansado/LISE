@@ -111,8 +111,9 @@ class LISEEventHandlerBase
 		$index = 0;
 
 		foreach ($this->GetValue() as $one_val) {
-			if(!$one_val)
+			if (!is_numeric($one_val) && !$one_val) {
 				continue;
+			}
 
 			$result = $db->Execute($query, array($this->GetParentItem()->item_id, $this->GetId(), $index, $one_val));
 
