@@ -572,65 +572,60 @@ class LISEFielddefOperations
    * @LISE &$mod, String $key, String $value
    * @return bool|\LISEFielddefBase
    */
-  static final public function Load()
+  public static final function Load()
   {
     $args = func_get_args();
     $mod = $args[0];
-  
-    $row = count($args) == 2 ? $args[1] : false;
-    $db = cmsms()->GetDb();  
-    
-    if(!$row) 
-    {
-  
-      foreach(self::$identifiers as $db_column => $identifier)
-      {
-        if($identifier == $args[1]) 
-        {
-          $query = "SELECT * FROM " . cms_db_prefix() . "module_" . $mod->_GetModuleAlias() . "_fielddef
-                    WHERE $db_column = ? 
-                    LIMIT 1";                  
-                    
-          $row = $db->GetRow($query, array($args[2]));
-          
-          if($row) break;
+
+    $row = count($args) === 2 ? $args[1] : false;
+    $db = cmsms()->GetDb();
+
+    if (!$row) {
+      foreach(self::$identifiers as $db_column => $identifier) {
+        if ($identifier === $args[1]) {
+          $query = "SELECT * FROM " . cms_db_prefix() . "module_" . $mod->_GetModuleAlias() . "_fielddef WHERE $db_column = ? LIMIT 1";
+
+          $row = $db->GetRow($query, [$args[2]]);
+
+          if ($row) {
+            break;
+          }
         }
       }
     }
 
-    if($row) 
-      {
-    
-      $obj = self::LoadFielddefByType($row['type'], $mod);
-      
-      if(is_object($obj)) 
-      {
-        // Fill object
-        $obj->SetId($row['fielddef_id']);
-        $obj->SetName($row['name']);
-        $obj->SetAlias($row['alias']);
-        $obj->SetDesc($row['help']);
-        $obj->SetPosition($row['position']);
-        $obj->SetRequired($row['required']);
-        $obj->SetTemplate($row['template']);
-        
-        // Set options
-        $query = 'SELECT name, value FROM ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef_opts WHERE fielddef_id = ?';
-        $dbr = $db->Execute($query, array($obj->GetId()));
-        
-        while($dbr && !$dbr->EOF)
-        {
-          $obj->SetOptionValue($dbr->fields['name'], $dbr->fields['value']);
-          $dbr->MoveNext();
-        }    
-
-        if($dbr) $dbr->Close();
-      
-        return $obj;
-      }
+    if (!$row) {
+      return false;
     }
-      
-    return FALSE;  
+
+    $obj = self::LoadFielddefByType($row['type'], $mod);
+    if (!is_object($obj) || (!$mod->_isAdminSection && $obj->isAdminField())) {
+      return false;
+    }
+
+    // Fill object
+    $obj->SetId($row['fielddef_id']);
+    $obj->SetName($row['name']);
+    $obj->SetAlias($row['alias']);
+    $obj->SetDesc($row['help']);
+    $obj->SetPosition($row['position']);
+    $obj->SetRequired($row['required']);
+    $obj->SetTemplate($row['template']);
+
+    // Set options
+    $query = 'SELECT name, value FROM ' . cms_db_prefix() . 'module_' . $mod->_GetModuleAlias() . '_fielddef_opts WHERE fielddef_id = ?';
+    $dbr = $db->Execute($query, array($obj->GetId()));
+
+    while ($dbr && !$dbr->EOF) {
+      $obj->SetOptionValue($dbr->fields['name'], $dbr->fields['value']);
+      $dbr->MoveNext();
+    }
+
+    if ($dbr) {
+      $dbr->Close();
+    }
+
+    return $obj;
   }
   
   #---------------------

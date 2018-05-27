@@ -3,9 +3,10 @@
 class lisefd_Tabs extends LISEFielddefBase
 {
 	public function __construct(&$db_info, $caller_object) 
-	{	
+	{
 		parent::__construct($db_info, $caller_object);
-		
+
+		$this->enableAdminField();
 		$this->SetFriendlyType($this->ModLang('fielddef_Tabs'));
 	}
 

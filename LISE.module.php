@@ -81,58 +81,68 @@ class LISE extends CMSModule
   protected $_fielddef_cache;
   protected $_item_cache;
 
+  /**
+   * True when action is on admin page
+   * @var bool
+   */
+  public $_isAdminSection;
+
   #---------------------
   # Magic methods
-  #---------------------    
+  #---------------------
 
   public function __construct()
   {
     spl_autoload_register( array($this, '_autoloader') );
-  
+
     $this->_item_cache    = new LISECache(LISEItemOperations::$identifiers);
     $this->prefix         = $this->GetPreference('url_prefix', munge_string_to_url($this->GetName(), true));
-    
+
     # smarty stuff
     $smarty = cmsms()->GetSmarty();
     $smarty->registerResource('lisetemplate', new LISETemplateResource() );
     $smarty->registerClass('LISESmarty', 'LISESmarty');
-    
+
+    # Check backend section
+    global $CMS_ADMIN_PAGE;
+    $this->_isAdminSection = (bool)$CMS_ADMIN_PAGE;
+
     #I would rather have this here, but... apparently in CMSMS 2 it will work...
     #$smarty->registerPlugin('function', 'LISELoader', array('LISELoader', 'loader'));
     parent::__construct();
-    
+
   }
-  
+
   #---------------------
   # Internal autoloader
-  #---------------------  
+  #---------------------
 
   private final function _autoloader($classname)
   {
     $parts = explode('\\', $classname);
     $classname = end($parts);
-    
+
     $fn = cms_join_path(
                           $this->GetModulePath(),
                           'lib',
                           'class.' . $classname . '.php'
                         );
-    
+
     if(file_exists($fn))
     {
       require_once($fn);
     }
   }
-  
+
   #---------------------
   # Module api methods
-  #---------------------    
-  
+  #---------------------
+
   public function GetName()
   {
     return LISE;
   }
-  
+
   public function GetFriendlyName()
   {
     return LISE;
@@ -170,7 +180,7 @@ class LISE extends CMSModule
                           dirname(__FILE__),
                           'changelog.html'
                         );
-                        
+
     return @file_get_contents($fn);
   }
 
@@ -213,7 +223,7 @@ class LISE extends CMSModule
   {
     return $this->ModLang('postuninstall');
   }
-  
+
   function GetEventDescription( $eventname )
   {
     return $this->ModLang('eventdesc_' . $eventname);
@@ -230,13 +240,13 @@ class LISE extends CMSModule
     $use_ssl = false;
     if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']=='on')
       $use_ssl = true;
-  
+
     $config = cmsms()->GetConfig();
     $globals_js = ($use_ssl ? $config['ssl_url'] : $config['root_url']) . '/modules/' . LISE . '/lib/js/';
     $globals_css = ($use_ssl ? $config['ssl_url'] : $config['root_url']) . '/modules/' . LISE . '/lib/css/';
 
     $tmpl = <<<EOT
-<link type="text/css" rel="stylesheet" href="{$globals_css}lise-globals.css" />  
+<link type="text/css" rel="stylesheet" href="{$globals_css}lise-globals.css" />
 <script type="text/javascript" src="{$globals_js}lise-globals.js"></script>
 EOT;
     return $tmpl;
@@ -248,17 +258,17 @@ EOT;
     $config = cmsms()->GetConfig();
     $smarty = cmsms()->GetSmarty();
     $db = cmsms()->GetDb();
-  
+
     $smarty->assign('mod', $this);
     $smarty->assign('actionid', $id);
     $smarty->assign('returnid', $returnid);
-    
+
     if($CMS_ADMIN_PAGE)
     {
       $themeObject = cms_utils::get_theme_object();
       $smarty->assign('themeObject', $themeObject);
     }
-    
+
     if ($name != '')
     {
       $contents = '';
@@ -266,24 +276,24 @@ EOT;
 
       if($CMS_ADMIN_PAGE && $name != 'ajax_geturl')
         $contents .= '<div class="lise-admin-wrapper">';
-      
+
       $filename = $this->GetModulePath() . '/action.' . $name . '.php';
       if (@is_file($filename)) {
-        
+
         ob_start();
-        
+
         include($filename);
         $contents .= ob_get_contents();
         ob_end_clean();
       }
-      
+
       if($CMS_ADMIN_PAGE && $name != 'ajax_geturl')
         $contents .= '</div>';
 
       echo $contents;
     }
   }
-  
+
   function AllowAutoInstall()
   {
     return $this->GetPreference('auto_install', FALSE);
@@ -293,22 +303,22 @@ EOT;
   {
     return $this->GetPreference('auto_upgrade', FALSE);
   }
-  
+
   function Upgrade($oldversion, $newversion)
   {
     $config = cmsms()->GetConfig();
     $smarty = cmsms()->GetSmarty();
     $db = cmsms()->GetDb();
-    
+
     $response = FALSE;
-  
+
     $filename = $this->GetModulePath() . '/method.upgrade.php';
     if (@is_file($filename)) {
-      
+
       $response = FALSE;
-      
+
       $res = include($filename);
-      
+
       if(lise_utils::isCMS2())
       {
         if($res == 1 || $res == '') {
@@ -332,13 +342,13 @@ EOT;
     $config = cmsms()->GetConfig();
     $smarty = cmsms()->GetSmarty();
     $db = cmsms()->GetDb();
-    
+
     $response = FALSE;
-  
+
     $filename = $this->GetModulePath() . '/method.install.php';
     if (@is_file($filename)) {
-  
-      
+
+
       $res = include($filename);
       if($res == 1 || $res == '') {
         $response = FALSE;
@@ -346,22 +356,22 @@ EOT;
         $response = $res;
       }
     }
-  
+
     return $response;
   }
-  
+
   function Uninstall()
   {
     $config = cmsms()->GetConfig();
     $smarty = cmsms()->GetSmarty();
     $db = cmsms()->GetDb();
-    
+
     $response = FALSE;
-    
+
     $filename = $this->GetModulePath() . '/method.uninstall.php';
     if (@is_file($filename)) {
-  
-      
+
+
       $res = include($filename);
       if($res == 1 || $res == '') {
         $response = FALSE;
@@ -369,20 +379,20 @@ EOT;
         $response = $res;
       }
     }
-  
+
     return $response;
   }
 
   #---------------------
   # Manipulation methods
-  #--------------------- 
-  
+  #---------------------
+
   public function ModLang()
   {
     $args = func_get_args();
     return call_user_func_array(array($this, 'lang'), $args);
   }
-  
+
   public function ModProcessTemplate($tpl_name)
   {
     $ok = (strpos($tpl_name, '..') === false);
@@ -403,16 +413,16 @@ EOT;
     if (!$ok) return '';
 
     $config = cmsms()->GetConfig();
-    
+
     $template = cms_join_path(LISE_TEMPLATE_PATH, $tpl_name . '.tpl');
-    
+
     if (is_readable($template)) {
       return @file_get_contents($template);
     } else {
       return null;
     }
   }
-  
+
   #---------------------
   # Instance methods
   #---------------------
@@ -425,9 +435,9 @@ EOT;
   final public function ListModules()
   {
     $db = cmsms()->GetDb();
-    
+
     $entryarray = array();
-  
+
     $query = "SELECT * FROM " . cms_db_prefix() . "module_lise_instances ORDER BY module_id";
     $dbr = $db->Execute($query);
 
@@ -435,13 +445,13 @@ EOT;
     {
       # * NOTE: lise_utils::array_to_object() not called on purpose. (Need to find why though .... JM)
       $obj = new stdClass();
-    
+
       $obj->module_id = $row['module_id'];
       $obj->module_name = $row['module_name'];
-    
+
       $entryarray[$row['module_id']] = $obj;
     }
-  
+
     return $entryarray;
   }
 
@@ -450,16 +460,16 @@ EOT;
   * note: this will most surely be moved to the actual framework
   * at some point
   **********************************************************************/
-  
+
   #---------------------
   # Cross module support
-  #---------------------   
-  
-  // CGE hint system support  
+  #---------------------
+
+  // CGE hint system support
   public function LoadModuleHints(&$params)
   {
     $this->use_hints = cms_utils::get_app_data( '__MODULE_HINT__' . $this->GetName() );
-    
+
     if(count($this->use_hints) > 0)
     {
       foreach((array)$this->use_hints as $key=>$value)
@@ -469,10 +479,10 @@ EOT;
       }
     }
   }
-  
+
   #---------------------
   # Search methods
-  #--------------------- 
+  #---------------------
 
   public function SearchResult($returnid, $item_id, $attr = '')
   {
@@ -482,7 +492,7 @@ EOT;
     if($this->GetPreference('reindex_search', 0))
     {
       $attribute_name = $this->GetPreference('item_singular', 'item');
-      
+
       if($attr == 'title' || $attr == $attribute_name)
       {
         $db = cmsms()->GetDb();
@@ -500,7 +510,7 @@ EOT;
           $inline = $this->GetPreference('display_inline', 0) == 1;
 
           $detailtemplate = $this->GetPreference($this->_GetModuleAlias() . '_default_detail_template');
-      
+
           $params = array('item' => $row['alias'], 'detailtemplate' => $detailtemplate);
           $this->LoadModuleHints($params);
 
@@ -508,87 +518,86 @@ EOT;
         }
       }
     }
-    
+
     return $result;
   }
-  
+
 
   #---------------------
   # Template methods
-  #--------------------- 
-  
+  #---------------------
+
   public function GetFileTemplatesByType($type)
   {
     $result = array();
-    
+
     if ($handle = opendir(LISE_TEMPLATE_PATH)) {
-    
+
       while (false !== ($entry = readdir($handle))) {
-      
+
         if ($entry == "." || $entry == "..") continue;
-        
+
         if(startswith($entry, 'fe_')) {
-      
+
           list($tpl_prefix, $tpl_type, $tpl_name) = explode('_', $entry, 3);
           if($tpl_type == $type) {
-          
+
             $split_file = explode('.', $entry);
             $split_name = explode('.', $tpl_name);
-            
+
             $result[$split_name[0]] = $split_file[0];
           }
         }
       }
-      
+
       closedir($handle);
     }
-  
+
     ksort($result);
-  
+
     return $result;
-  
+
   }
-  
+
   #---------------------
   # Fielddef methods
-  #---------------------   
-  
+  #---------------------
+
   // Get Field Definitions (Review this method ASAP)
-  public function GetFieldDefs($include_list = array())
+  public function GetFieldDefs($include_list = [])
   {
     // Load from cache
-    if(isset($this->_fielddef_cache))
-    {
-      $fielddefs = array();
-      foreach($this->_fielddef_cache as $field)
-      {
-        if(
-            count($include_list)
+    if (isset($this->_fielddef_cache)) {
+      $fielddefs = [];
+      foreach($this->_fielddef_cache as $field) {
+        if (count($include_list)
             && !in_array($field->GetAlias(), $include_list)
             && !in_array($field->GetId(), $include_list)
-          )
+        ) {
             continue;
-      
+        }
+
         $fielddefs[$field->GetId()] = clone $field;
       }
-      
+
       return new LISEFielddefArray($fielddefs);
     }
-    
+
     // Load from database
     $db = cmsms()->GetDb();
     $this->_fielddef_cache = new LISECache(LISEFielddefOperations::$identifiers);
-    
+
     $query = "SELECT * FROM " . cms_db_prefix() . "module_" . $this->_GetModuleAlias() . "_fielddef GROUP BY fielddef_id ORDER BY position";
     $dbr = $db->Execute($query);
 
-    while ($dbr && $row = $dbr->FetchRow())
-    {
+    while ($dbr && $row = $dbr->FetchRow()) {
       $obj = LISEFielddefOperations::Load($this, $row);
-      if(is_object($obj))
+
+      if (is_object($obj)) {
         $this->_fielddef_cache[] = $obj;
+      }
     }
-    
+
     return $this->GetFieldDefs($include_list);
   }
 
@@ -600,58 +609,57 @@ EOT;
     foreach($fielddef_order as $key => $item){
       $db->Execute($query, array($key, $item));
     }
-    
+
     return $this->ModLang('changessaved');
   }
-  
+
   #---------------------
   # Item methods
-  #---------------------   
-  
+  #---------------------
+
   public function SaveItem(LISEItem &$obj)
   {
     LISEItemOperations::Save($this, $obj);
   }
-  
-  public function InitiateItem($load_fields = array())
+
+  public function InitiateItem($load_fields = [])
   {
     $obj = new LISEItem;
-    if($load_fields !== false) {
-    
+    if ($load_fields !== false) {
       $obj->fielddefs = $this->GetFieldDefs($load_fields);
       $obj->fielddefs->SetParentItem($obj);
     }
-    
+
     return $obj;
   }
-  
+
   public function LoadItemByIdentifier($identifier, $value)
   {
     if(!$obj = $this->_item_cache->GetCachedByIdentifier($identifier, $value))
     {
       $obj = $this->InitiateItem();
       $obj->$identifier = $value;
-      
+
       if(LISEItemOperations::Load($this, $obj))
         $this->_item_cache[] = $obj;
     }
-    
+
     return clone $obj;
   }
-  
+
   public function DeleteItemById($id)
   {
     $obj = $this->LoadItemByIdentifier('item_id', $id);
     LISEItemOperations::Delete($this, $obj);
   }
-  
+
   // Make bulk action (using this: action.ajax.php)
   public function SaveItemOrder($item_order)
   {
     $db = cmsms()->GetDb();
     $query = 'UPDATE ' . cms_db_prefix() . 'module_' . $this->_GetModuleAlias() . '_item SET position = ? WHERE item_id = ?';
     $prefSortorder = $this->GetPreference('sortorder', '');
-    
+
     foreach($item_order as $key => $item)
     {
       if ($prefSortorder == 'DESC')
@@ -665,28 +673,28 @@ EOT;
     }
     return $this->ModLang('changessaved');
   }
-  
+
   public function GetItemQuery(&$params)
   {
     $class = $this->_GetModuleConfig('item_query_class');
-  
+
     return new $class($this, $params);
   }
-  
+
   #---------------------
   # Category methods
-  #---------------------   
-  
+  #---------------------
+
   public function SaveCategory(LISECategory &$obj)
   {
     LISECategoryOperations::Save($this, $obj);
   }
-  
+
   public function InitiateCategory()
   {
     return new LISECategory;
   }
-  
+
   public function LoadCategoryByIdentifier($identifier, $value)
   {
     if(!in_array($identifier, LISECategoryOperations::$identifiers))
@@ -694,18 +702,18 @@ EOT;
 
     $obj = $this->InitiateCategory();
     $obj->$identifier = $value;
-    
+
     LISECategoryOperations::Load($this, $obj);
-    
+
     return $obj;
   }
-  
+
   public function DeleteCategoryById($id)
   {
     $obj = $this->LoadCategoryByIdentifier('category_id', $id);
     LISECategoryOperations::Delete($this, $obj);
   }
-  
+
   // Make bulk action (using this: action.ajax.php)
   public function SaveCategoryOrder($category_order)
   {
@@ -717,28 +725,28 @@ EOT;
     LISECategoryOperations::UpdateHierarchyPositions($this);
     return $this->ModLang('changessaved');
   }
-  
+
   public function GetCategoryQuery(&$params)
   {
     $class = $this->_GetModuleConfig('category_query_class');
-  
+
     return new $class($this, $params);
   }
 
   #---------------------
   # Archive methods
-  #---------------------   
+  #---------------------
 
   public function GetArchiveQuery(&$params)
   {
     $class = $this->_GetModuleConfig('archive_query_class');
-  
+
     return new $class($this, $params);
   }
-  
+
   #---------------------
   # Internal methods
-  #---------------------     
+  #---------------------
 
   /**
    * Get field types
@@ -747,17 +755,17 @@ EOT;
   public function _GetModuleConfig()
   {
     $config = array();
-    
+
     if( count( func_num_args() ) )
     {
       $key = func_get_arg(0);
       $config = \LISE\ConfigManager::GetConfigInstance($this);
       return $config[$key];
     }
-    
+
     return $config;
   }
-  
+
   /**
    * Get field types
    * @return array Returns an array of field types
@@ -766,11 +774,11 @@ EOT;
   {
     return $this->_GetModuleConfig('module_alias');
   }
-  
+
   #---------------------
   # Help methods
-  #---------------------   
-  
+  #---------------------
+
   public function CreateBackLink($tab, $action = 'defaultadmin')
   {
     $params = array('active_tab' => $tab);
@@ -779,7 +787,7 @@ EOT;
             . '">'
             . $this->ModLang('back')
             . '</a>';
-            
+
     return $link;
   }
 
@@ -797,7 +805,7 @@ EOT;
                               $prettyurl = ''
                             )
   {
-    
+
     switch($action)
     {
 
@@ -819,33 +827,33 @@ EOT;
                                     $prettyurl
                                   );
         }
-      
+
         $string_array = array();
         $string_array[] = $this->prefix;
-        
+
         // Category / hierarchial stuff
         if(isset($params['category']) && isset($params['id_hierarchy'])) {
-        
+
           if(!isset($this->use_hints['category']))
             $string_array[] = $params['category'];
-          
+
           if(!isset($this->use_hints['id_hierarchy']))
             $string_array[] = $params['id_hierarchy'];
         }
-        
+
         $string_array[] = $params['item'];
-        
+
         if(!isset($this->use_hints['returnid']))
           $string_array[] = $returnid;
 
         if(!isset($this->use_hints['detailtemplate']) && isset($params['detailtemplate']))
           $string_array[] = $params['detailtemplate'];
-        
+
         $prettyurl = implode('/', $string_array);
         break;
 
       case 'default':
-      
+
         if( isset($params['tag']) )
         {
           break;
@@ -853,11 +861,11 @@ EOT;
 
         $string_array = array();
         $string_array[] = $this->prefix;
-        
+
         // Category / hierarchial stuff
         if(!isset($this->use_hints['category']) && isset($params['category']))
           $string_array[] = $params['category'];
-        
+
         if(!isset($this->use_hints['id_hierarchy']) && isset($params['id_hierarchy']))
           $string_array[] = $params['id_hierarchy'];
 
@@ -866,23 +874,23 @@ EOT;
         {
           $string_array[] = 'page';
           $string_array[] = $params['pagenumber'];
-        
+
           if(!isset($this->use_hints['pagelimit']))
             $string_array[] = $params['pagelimit'];
         }
-        
+
         // Archive stuff.
         if(isset($params['filter_year']) || isset($params['filter_month']))
         {
           $string_array[] = 'archive';
-          
+
           if(!isset($this->use_hints['filter_year']) && isset($params['filter_year']))
             $string_array[] = $params['filter_year'];
-        
+
           if(!isset($this->use_hints['filter_month']) && isset($params['filter_month']))
             $string_array[] = $params['filter_month'];
         }
-        
+
         if(!isset($this->use_hints['returnid']))
           $string_array[] = $returnid;
 
@@ -891,11 +899,11 @@ EOT;
 
         $prettyurl = implode('/', $string_array);
         break;
-        
+
         default:
           $prettyurl = '';
     }
-    
+
     return $this->CreateLink(
                               $id,
                               $action,
